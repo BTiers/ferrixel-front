@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useCallback, useEffect } from "react";
-import { boardAtom, getCellId, useCellAtom, userNameAtom } from "@/store";
+import { boardAtom, getCellId, useCellAtom, viewerAtom } from "@/store";
 import { useAtomValue, useSetAtom } from "jotai";
+import { debounce } from "lodash";
 
+import { Position } from "@/types/board";
 import { Input } from "@/components/ui";
 import { selectCell, setCellValue } from "@/websocket/lib";
 
@@ -15,10 +17,12 @@ type CellProps = {
   user: string | null;
 };
 
-function useGetLockColor(userName: string) {
-  const viewer = useAtomValue(userNameAtom);
+function useGetLockColor(userName?: string | null) {
+  const viewer = useAtomValue(viewerAtom);
 
-  if (userName === viewer) return ["ring-amber-600", "ring-amber-600 bg-amber-600"] as const;
+  if (!userName) return ["", ""] as const;
+  if (userName === viewer.username)
+    return ["ring-amber-600", "ring-amber-600 bg-amber-600"] as const;
 
   const colorClassNames = [
     ["ring-fuchsia-600", "ring-fuchsia-600 bg-fuchsia-600"],
@@ -37,9 +41,10 @@ function useGetLockColor(userName: string) {
 }
 
 const CellLocked: React.FC<{ locked?: { who: string } | null }> = ({ locked }) => {
-  if (!locked) return null;
+  const viewer = useAtomValue(viewerAtom);
+  const [ringClassName, badge] = useGetLockColor(locked?.who);
 
-  const [ringClassName, badge] = useGetLockColor(locked.who);
+  if (!locked) return null;
 
   return (
     <div
@@ -49,7 +54,7 @@ const CellLocked: React.FC<{ locked?: { who: string } | null }> = ({ locked }) =
         <span
           className={`absolute -top-4 right-1 z-10 h-4 truncate rounded-[0.04rem] text-xs text-white ring ${badge}`}
         >
-          {locked.who}
+          {locked.who === viewer.username ? "You" : locked.who}
         </span>
       </div>
     </div>
@@ -57,7 +62,7 @@ const CellLocked: React.FC<{ locked?: { who: string } | null }> = ({ locked }) =
 };
 
 const Cell: React.FC<CellProps> = ({ row, column, value, user }) => {
-  const userName = useAtomValue(userNameAtom);
+  const viewer = useAtomValue(viewerAtom);
   const setBoard = useSetAtom(boardAtom);
 
   useEffect(() => {
@@ -69,31 +74,47 @@ const Cell: React.FC<CellProps> = ({ row, column, value, user }) => {
 
   const [cell, setCell] = useCellAtom(getCellId({ row, column }));
 
+  const debouncedOnChange = useCallback(
+    debounce((position: Position, value: string) => {
+      setCellValue(position, value);
+    }, 200),
+    []
+  );
+
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (!(cell.locked?.who === userName)) return e.preventDefault();
+      if (!(cell.locked?.who === viewer.username)) return e.preventDefault();
+
+      const position = { row, column };
+      const value = e.target.value;
 
       setCell((cell) => ({
         ...cell,
-        value: e.target.value,
-        position: { row, column },
+        value,
+        position,
       }));
-      setCellValue({ row, column }, e.target.value);
+
+      debouncedOnChange(position, value);
     },
     [cell, setCell]
   );
 
-  const handleFocus = useCallback(() => {
-    selectCell({ row, column });
-  }, [row, column]);
+  const handleFocus = useCallback(
+    (e: React.FocusEvent<HTMLInputElement>) => {
+      selectCell({ row, column });
+    },
+    [row, column, cell]
+  );
 
   return (
-    <td className="-p-1 relative min-w-[10ch] border border-slate-300 text-center text-sm">
+    <td className="-p-1 relative w-full min-w-[10ch] border border-slate-300 text-center text-sm">
       <CellLocked locked={cell?.locked} />
       <Input
+        id={getCellId(cell?.position)}
         size="small"
         variant="flat"
         type="text"
+        disabled={!!cell?.locked?.who && !(cell?.locked?.who === viewer.username)}
         value={cell?.value ?? ""}
         onFocus={handleFocus}
         onChange={handleChange}

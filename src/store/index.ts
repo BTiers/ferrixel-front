@@ -6,11 +6,21 @@ import { focusAtom } from "jotai-optics";
 
 import { Cell, Position } from "@/types/board";
 
-function getCellId(position: Position) {
+function getCellId(position: Position | null) {
+  if (!position) return "";
+
   return `cell-${position.column}-${position.row}`;
 }
 
-const userNameAtom = atom<string | null>(null);
+type Viewer = {
+  username: string | null;
+  currentTable: string;
+};
+
+const viewerAtom = atom<Viewer>({
+  username: null,
+  currentTable: "Whiteboard",
+});
 const boardAtom = atom<Record<string, Cell>>({});
 
 function useCellAtom(id: string) {
@@ -19,4 +29,4 @@ function useCellAtom(id: string) {
   return useAtom(atom);
 }
 
-export { boardAtom, userNameAtom, getCellId, useCellAtom };
+export { boardAtom, viewerAtom, getCellId, useCellAtom };

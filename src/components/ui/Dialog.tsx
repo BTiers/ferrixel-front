@@ -43,7 +43,7 @@ const dialogContent = cva(
   }
 );
 
-const dialogOverlay = cva(["fixed z-30 inset-0 bg-gray-900/60"]);
+const dialogOverlay = cva(["fixed z-30 inset-0 bg-gray-900/60 backdrop-blur-sm"]);
 const dialogClose = cva(["fixed top-[0.85rem] right-2 lg:top-[1.35rem] lg:right-4"]);
 
 export type DialogContentVariantProps = VariantProps<typeof dialogContent>;

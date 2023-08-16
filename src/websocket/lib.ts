@@ -1,4 +1,4 @@
-import { boardAtom, getCellId, userNameAtom } from "@/store";
+import { boardAtom, getCellId, viewerAtom } from "@/store";
 import { getDefaultStore } from "jotai";
 
 import { Position } from "@/types/board";
@@ -30,15 +30,19 @@ type Response = SelectResponse | DeselectResponse | NewGridValueResponse;
 let WS: WebSocket | null = null;
 
 function getWS() {
-  const userName = getDefaultStore().get(userNameAtom);
+  const viewer = getDefaultStore().get(viewerAtom);
 
-  if (!userName) return null;
+  if (!viewer.username) return null;
   if (WS) return WS;
 
-  WS = new WebSocket(`ws://${process.env.NEXT_PUBLIC_API_URL}:8080/ws/${userName}`);
+  WS = new WebSocket(
+    `ws://${process.env.NEXT_PUBLIC_API_URL}:8080/ws/whiteboard/${viewer.username}`
+  );
 
-  WS.onopen = () => console.log("Websocket opened");
-  WS.onclose = () => console.log("Websocket closed");
+  WS.onopen = () => {
+    console.log("Websocket opened");
+  };
+  WS.onclose = (e) => console.log("websocket closed", { e });
 
   WS.onmessage = (message) => {
     const data = JSON.parse(message.data) as Response;

@@ -115,6 +115,7 @@ export const DebouncedInput = forwardRef<
 >(function Input(
   {
     size,
+    variant,
     leftIcon: LeftIcon = undefined,
     rightIcon: RightIcon = undefined,
     className,
@@ -129,6 +130,7 @@ export const DebouncedInput = forwardRef<
   const inputClassNames = input({
     size,
     icon: LeftIcon ? "left" : RightIcon ? "right" : undefined,
+    variant,
   });
 
   const inputIconClassNames = inputIcon({

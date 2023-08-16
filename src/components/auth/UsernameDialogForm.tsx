@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { userNameAtom } from "@/store";
+import { viewerAtom } from "@/store";
 import { useAtom } from "jotai";
 
 import { Button, Dialog, DialogContent, Input } from "@/components/ui";
@@ -9,17 +9,17 @@ import { getWS } from "@/websocket/lib";
 
 export default function UsernameDialogForm() {
   const [open, setOpen] = useState(false);
-  const [username, setUsername] = useAtom(userNameAtom);
+  const [viewer, setViewer] = useAtom(viewerAtom);
 
-  useEffect(() => setOpen(!username), []);
+  useEffect(() => setOpen(!viewer.username), []);
 
   const handleSubmit = useCallback(() => {
-    if (!username) return;
+    if (!viewer.username) return;
     // Activating the websocket connection
     getWS();
 
     setOpen(false);
-  }, [username]);
+  }, [viewer]);
 
   return (
     <Dialog open={open}>
@@ -30,8 +30,16 @@ export default function UsernameDialogForm() {
         description="To join the board you need to enter your username."
       >
         <div className="flex space-x-8">
-          <Input type="text" onChange={(e) => setUsername(e.target.value)} />
-          <Button disabled={!username} onClick={handleSubmit}>
+          <Input
+            type="text"
+            onChange={(e) =>
+              setViewer((current) => ({
+                ...current,
+                username: e.target.value,
+              }))
+            }
+          />
+          <Button disabled={!viewer.username} onClick={handleSubmit}>
             Submit
           </Button>
         </div>
